@@ -108,17 +108,19 @@ class ScholarProcessor:
                 and nid IS NOT NULL
         """
         headers = ['node_id', 'file']
-        path = 'workbench_sheets'
+        filepath = 'workbench_files'
+        sheetpath = 'workbench_sheets'
         # Build directory
-        Path(path).mkdir(parents=True, exist_ok=True)
-        with open(output_file_name, 'w', newline='') as csvfile:
+        Path(filepath).mkdir(parents=True, exist_ok=True)
+        Path(sheetpath).mkdir(parents=True, exist_ok=True)
+        with open(f"{sheetpath}/{output_file_name}", 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             writer.writeheader()
             for row in cursor.execute(statement):
                 datastream = self.content_model_primary_map[row['content_model']]
                 if not datastream:
                     continue
-                foxml_file = self.su.dereference(collection_pid)
+                foxml_file = self.su.dereference(row['pid'])
                 foxml = f"{self.objectStore}/{foxml_file}"
                 fw = FW.FWorker(foxml)
                 if fw.properties['state'] != 'Active':
@@ -129,7 +131,7 @@ class ScholarProcessor:
                     datastream_data = all_datastreams[original_file]
                     source = f"{self.datastreamStore}/{self.su.dereference(datastream_data['filename'])}"
                     destination = f"{row['nid']}_{datastream}{self.mimemap[datastream_data['mimetype']]}"
-                    shutil.copy(f"{self.datastreamStore}/{source}", f"{path}/{destination}")
+                    shutil.copy(source, f"{filepath}/{destination}")
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
 
@@ -140,4 +142,4 @@ class ScholarProcessor:
 
 if __name__ == '__main__':
     SP = ScholarProcessor()
-    SP.build_workbench_sheet('ir:signatureCollection', 'outputs/sigcollection.csv')
+    SP.build_workbench_sheet_remote('ir:graduate-works')
