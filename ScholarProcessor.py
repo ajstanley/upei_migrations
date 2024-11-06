@@ -108,6 +108,9 @@ class ScholarProcessor:
                 and nid IS NOT NULL
         """
         headers = ['node_id', 'file']
+        path = 'workbench_sheets'
+        # Build directory
+        Path(path).mkdir(parents=True, exist_ok=True)
         with open(output_file_name, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             writer.writeheader()
@@ -126,7 +129,7 @@ class ScholarProcessor:
                     datastream_data = all_datastreams[original_file]
                     source = f"{self.datastreamStore}/{self.su.dereference(datastream_data['filename'])}"
                     destination = f"{row['nid']}_{datastream}{self.mimemap[datastream_data['mimetype']]}"
-                    shutil.copy(f"{self.datastreamStore}/{source}", f"sheets/{destination}")
+                    shutil.copy(f"{self.datastreamStore}/{source}", f"{path}/{destination}")
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
 
