@@ -44,3 +44,39 @@ class ScholarUtilities:
         # URL encode the full string, replacing '_' with '%5F'
         encoded = urllib.parse.quote(full, safe='').replace('_', '%5F')
         return f"{subbed}/{encoded}"
+    # Gets PIDS, filtered by namespace directly from objectStore
+    def get_pids_from_objectstore(self, namespace=''):
+        wildcard = '*/*'
+        if namespace:
+            wildcard = f'*/*{namespace}*'
+        pids = []
+        for p in Path(self.objectStore).rglob(wildcard):
+            pid = unquote(p.name).replace('info:fedora/', '')
+            pids.append(pid)
+        return pids
+    # Gets RELS-EXT relationships from objectStore
+    def build_record_from_pids(self, namespace, output_file):
+        pids = self.get_pids_from_objectstore(namespace)
+        headers = ['pid',
+                   'content_model',
+                   'collection_pid',
+                   'page_of',
+                   'sequence',
+                   'constituent_of']
+
+        with open(output_file, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=headers)
+            writer.writeheader()
+            for pid in pids:
+                foxml_file = self.dereference(pid)
+                foxml = f"{self.objectStore}/{foxml_file}"
+                fw = FW.FWorker(foxml)
+                if fw.get_state() != 'Active':
+                    continue
+                relations = fw.get_rels_ext_values()
+                row = {}
+                row['pid'] = pid
+                for relation, value in relations.items():
+                    if relation in self.rels_map:
+                        row[self.rels_map[relation]] = value
+                writer.writerow(row)
