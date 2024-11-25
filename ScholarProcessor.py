@@ -36,6 +36,7 @@ class ScholarProcessor:
                         "audio/x-wav": ".wav"
                         }
 
+    # Takes csv generated on productions server and updates the database with each object with its hierarchy.
     def populate_database(self, csv_file):
         cursor = self.conn.cursor()
         cursor.execute(f"""
@@ -69,6 +70,7 @@ class ScholarProcessor:
                     print(row['PID'])
         self.conn.commit()
 
+    # Updates the database to include nids from the new system mapped to exising pids.
     def update_pid_nid_mapping(self, csv_file):
         cursor = self.conn.cursor()
         with open(csv_file, newline='') as csvfile:
@@ -78,6 +80,7 @@ class ScholarProcessor:
                 cursor.execute(statement)
         self.conn.commit()
 
+    # Builds workbench sheet to ingest primary assets from current site using RESTFULL interface
     def build_workbench_sheet(self, collection_pid):
         output_file_name = f"{collection_pid.replace(':', '_')}_workbench.csv"
         cursor = self.conn.cursor()
@@ -87,7 +90,7 @@ class ScholarProcessor:
         WHERE collection_pid = '{collection_pid}'
         and nid IS NOT NULL
 """
-        headers = ['node_id','file']
+        headers = ['node_id', 'file']
         with open(output_file_name, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             writer.writeheader()
@@ -96,8 +99,9 @@ class ScholarProcessor:
                 if not datastream:
                     continue
                 filename = f"{self.scholar}/islandora/object/{row['pid']}/datastreams/{datastream}/download"
-                writer.writerow({'node_id':row['nid'], 'file': filename})
+                writer.writerow({'node_id': row['nid'], 'file': filename})
 
+    # Builds workbench sheet to ingest primary assets harvesting from the Fedora data dir.
     def build_workbench_sheet_remote(self, collection_pid):
         output_file_name = f"{collection_pid.replace(':', '_')}_workbench.csv"
         cursor = self.conn.cursor()
@@ -135,8 +139,7 @@ class ScholarProcessor:
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
 
-
-
+    def prep_environment(self):
 
 
 
