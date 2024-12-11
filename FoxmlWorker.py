@@ -14,7 +14,8 @@ class FWorker:
             'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
             'fedora': "info:fedora/fedora-system:def/relations-external#",
             'fedora - model': "info:fedora/fedora-system:def/model#",
-            'islandora': "http://islandora.ca/ontology/relsext#"
+            'islandora': "http://islandora.ca/ontology/relsext#",
+            'mods': 'http://www.loc.gov/mods/v3'
         }
         self.mods_xsl = 'assets/mods_to_dc.xsl'
         self.properties = self.get_properties()
@@ -130,6 +131,16 @@ class FWorker:
             if resource:
                 re_values[tag] = resource.replace('info:fedora/', '')
         return re_values
-
+    # Older objects may have MODS as inline xml
+    def get_inline_mods(self):
+        mods_nodes = self.root.findall(
+            f'.//foxml:datastream[@ID="MODS"]/foxml:datastreamVersion/foxml:xmlContent/mods:mods',
+            namespaces=self.namespaces)
+        if mods_nodes:
+            mods_node = re_node = mods_nodes[-1]
+            return ET.tostring(mods_node, encoding="unicode")
+        else:
+            return None
 if __name__ == '__main__':
-    FW = FWorker('inputs/sample_foxml.xml')
+    FW = FWorker('inputs/foxml_with_inline_mods.xml')
+    print(FW.get_inline_mods())
