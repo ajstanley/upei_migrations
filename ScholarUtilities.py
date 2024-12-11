@@ -53,7 +53,7 @@ class ScholarUtilities:
                         "audio/x-wav": ".wav",
                         "audio/mpeg": ".mp3",
                         }
-        self.staging_dir = '/usr/local/fedora/migration/staging'
+        self.staging_dir = '/usr/local/fedora/upei_migrations/staging'
 
     # Returns disk address from PID.
     def dereference(self, identifier: str) -> str:
