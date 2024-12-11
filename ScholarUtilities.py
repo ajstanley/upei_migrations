@@ -94,6 +94,7 @@ class ScholarUtilities:
                         row[self.rels_map[relation]] = value
                 writer.writerow(row)
 
+
     # Processes CSV returned from direct objectStore harvest
     def process_clean_institution(self, institution, csv_file):
         cursor = self.conn.cursor()
@@ -160,6 +161,7 @@ class ScholarUtilities:
         result['field_pid'] = pid
         return result
 
+    # Gets the repository structural elements.Ò
     def get_structure(self, table, output_file):
         cursor = self.conn.cursor()
         all_rows = []
@@ -195,7 +197,19 @@ class ScholarUtilities:
                     row['pid'] = line_parts[2]
                     writer.writerow(row)
 
+    def add_pid_mapping(self, csv_file, table):
+        cursor = self.conn.cursor()
+        with open(csv_file, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                update_statement = f"update {table} SET nid = {row['nid']} where pid = '{row['pid']}'"
+                cursor.execute(update_statement)
+        self.conn.commit()
+
+
+
+
+
 
 SU = ScholarUtilities()
-SU.extract_from_mods('imagined:209201')
-SU.text_to_csv('inputs/database_output.txt', 'outputs/transformed.csv')
+SU.add_pid_mapping('assets/scholar_nid_pid.csv', 'islandscholar')
