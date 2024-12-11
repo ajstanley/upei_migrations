@@ -6,6 +6,7 @@ import hashlib
 import urllib
 from pathlib import Path
 from urllib.parse import unquote
+import shutil
 import lxml.etree as ET
 import requests
 from pyparsing import lineEnd
@@ -30,6 +31,29 @@ class ScholarUtilities:
                          'isConstituentOf': 'constituent_of'
                          }
         self.mods_xsl = "assets/rosies_transform.xsl"
+        self.stream_map = {
+            'ir:citationCModel': ['OBJ', 'PDF'],
+            'ir:thesisCModel': ['OBJ', 'PDF'],
+            'islandora:citationCModel': ['OBJ', 'PDF'],
+            'islandora:collectionCModel': ['OBJ', 'PDF'],
+            'islandora:entityCModel': ['OBJ', 'PDF', 'TN'],
+            'islandora:eventCModel': ['OBJ', 'PDF', 'TN'],
+            'islandora:organizationCModel': ['OBJ', 'PDF', 'TN'],
+            'islandora:personCModel': ['OBJ', 'PDF', 'TN'],
+            'islandora:sp_videoCModel': ['OBJ', 'PDF'],
+        }
+        self.mimemap = {"image/jpeg": ".jpg",
+                        "image/jp2": ".jp2",
+                        "image/png": ".png",
+                        "image/tiff": ".tif",
+                        "text/xml": ".xml",
+                        "text/plain": ".txt",
+                        "application/pdf": ".pdf",
+                        "application/xml": ".xml",
+                        "audio/x-wav": ".wav",
+                        "audio/mpeg": ".mp3",
+                        }
+        self.staging_dir = '/usr/local/fedora/migration/staging'
 
     # Returns disk address from PID.
     def dereference(self, identifier: str) -> str:
@@ -206,10 +230,31 @@ class ScholarUtilities:
                 cursor.execute(update_statement)
         self.conn.commit()
 
-
-
-
-
+    def stage_files(self,table, collection):
+        cursor = self.conn.cursor()
+        statement = f"select pid, content_model from {table} where collection_id = '{collection}'"
+        for row in cursor.execute(statement):
+            pid = row['pid']
+            model = row['content_model']
+            copy_streams = {}
+            foxml_file = self.dereference(pid)
+            foxml = f"{self.objectStore}/{foxml_file}"
+            try:
+                fw = FW.FWorker(foxml)
+            except:
+                print(f"No record found for {pid}")
+                continue
+            all_files = fw.get_file_data()
+            for entry, file_data in all_files.items():
+                if entry in self.stream_map[model]:
+                    copy_streams[
+                        file_data[
+                            'filename']] = f"{pid.replace(':', '_')}_{entry}{self.mimemap[file_data['mimetype']]}"
+            path = f"{self.staging_dir}/{collection.replace(':', '_')}"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            for source, destination in copy_streams.items():
+                stream_to_copy = self.dereference(source)
+                shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
 
 SU = ScholarUtilities()
-SU.add_pid_mapping('assets/scholar_nid_pid.csv', 'islandscholar')
+SU.stage_files('islandscholar','ir:signatureCollection')
