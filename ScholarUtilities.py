@@ -208,7 +208,10 @@ class ScholarUtilities:
             writer = csv.DictWriter(csvfile, fieldnames=['nid', 'pid'])
             writer.writeheader()
             with open(infile) as file:
-                while line := file.readline():
+                while True:
+                    line = file.readline()
+                    if not line:
+                        break
                     line = line.replace(' ', '').replace('+', '').replace('-','').strip()
                     if not line or 'entity_id'  in line:
                         continue
