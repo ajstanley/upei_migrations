@@ -139,7 +139,6 @@ class ScholarProcessor:
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
 
-    def prep_environment(self):
 
 
 

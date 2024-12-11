@@ -131,6 +131,7 @@ class FWorker:
             if resource:
                 re_values[tag] = resource.replace('info:fedora/', '')
         return re_values
+
     # Older objects may have MODS as inline xml
     def get_inline_mods(self):
         mods_nodes = self.root.findall(
@@ -141,6 +142,8 @@ class FWorker:
             return ET.tostring(mods_node, encoding="unicode")
         else:
             return None
+
+
 if __name__ == '__main__':
     FW = FWorker('inputs/foxml_with_inline_mods.xml')
     print(FW.get_inline_mods())

@@ -7,13 +7,9 @@ import urllib
 from pathlib import Path
 from urllib.parse import unquote
 import shutil
-import lxml.etree as ET
-import requests
-from pyparsing import lineEnd
-
 import FoxmlWorker as FW
-from saxonche import *
-import xmltodict
+#from saxonche import *
+#import xmltodict
 
 
 class ScholarUtilities:
@@ -32,15 +28,15 @@ class ScholarUtilities:
                          }
         self.mods_xsl = "assets/rosies_transform.xsl"
         self.stream_map = {
-            'ir:citationCModel': ['OBJ', 'PDF'],
-            'ir:thesisCModel': ['OBJ', 'PDF'],
-            'islandora:citationCModel': ['OBJ', 'PDF'],
-            'islandora:collectionCModel': ['OBJ', 'PDF'],
-            'islandora:entityCModel': ['OBJ', 'PDF', 'TN'],
-            'islandora:eventCModel': ['OBJ', 'PDF', 'TN'],
-            'islandora:organizationCModel': ['OBJ', 'PDF', 'TN'],
-            'islandora:personCModel': ['OBJ', 'PDF', 'TN'],
-            'islandora:sp_videoCModel': ['OBJ', 'PDF'],
+            'ir:citationCModel': ['OBJ', 'PDF', 'MODS'],
+            'ir:thesisCModel': ['OBJ', 'PDF', 'MODS'],
+            'islandora:citationCModel': ['OBJ', 'PDF', 'MODS'],
+            'islandora:collectionCModel': ['OBJ', 'PDF', 'MODS'],
+            'islandora:entityCModel': ['OBJ', 'PDF', 'TN','MODS'],
+            'islandora:eventCModel': ['OBJ', 'PDF', 'TN', 'MODS'],
+            'islandora:organizationCModel': ['OBJ', 'PDF', 'TN','MODS'],
+            'islandora:personCModel': ['OBJ', 'PDF', 'TN','MODS'],
+            'islandora:sp_videoCModel': ['OBJ', 'PDF', 'MODS'],
         }
         self.mimemap = {"image/jpeg": ".jpg",
                         "image/jp2": ".jp2",
@@ -54,6 +50,8 @@ class ScholarUtilities:
                         "audio/mpeg": ".mp3",
                         }
         self.staging_dir = '/usr/local/fedora/upei_migrations/staging'
+
+
 
     # Returns disk address from PID.
     def dereference(self, identifier: str) -> str:
@@ -232,7 +230,7 @@ class ScholarUtilities:
 
     def stage_files(self,table, collection):
         cursor = self.conn.cursor()
-        statement = f"select pid, content_model from {table} where collection_id = '{collection}'"
+        statement = f"select pid, content_model from {table} where collection_pid = '{collection}'"
         for row in cursor.execute(statement):
             pid = row['pid']
             model = row['content_model']
@@ -244,14 +242,22 @@ class ScholarUtilities:
             except:
                 print(f"No record found for {pid}")
                 continue
+            path = f"{self.staging_dir}/{collection.replace(':', '_')}"
+            Path(path).mkdir(parents=True, exist_ok=True)
             all_files = fw.get_file_data()
             for entry, file_data in all_files.items():
                 if entry in self.stream_map[model]:
                     copy_streams[
                         file_data[
                             'filename']] = f"{pid.replace(':', '_')}_{entry}{self.mimemap[file_data['mimetype']]}"
-            path = f"{self.staging_dir}/{collection.replace(':', '_')}"
-            Path(path).mkdir(parents=True, exist_ok=True)
+                if 'MODS' in self.stream_map[model] and 'MODS' not in all_files:
+                    mods_content = fw.get_inline_mods()
+                    if mods_content:
+                        modsfile = f"{pid.replace(':', '_')}_MODS.xml"
+                        with open(f'{path}/{modsfile}', 'w') as f:
+                            f.write(mods_content)
+
+
             for source, destination in copy_streams.items():
                 stream_to_copy = self.dereference(source)
                 shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
