@@ -139,9 +139,20 @@ class ScholarProcessor:
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
 
-
+    def build(self, csv_file):
+        cursor = self.conn.cursor()
+        with open(csv_file, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                try:
+                    # Using parameterized queries to prevent SQL injection
+                    command = "INSERT OR REPLACE INTO missing_mods (pid, nid) VALUES (?, ?)"
+                    cursor.execute(command, (row['pid'], row['nid']))
+                except sqlite3.Error as e:
+                    print(f"SQLite error: {e}, row: {row}")
+        self.conn.commit()
 
 
 if __name__ == '__main__':
     SP = ScholarProcessor()
-    SP.build_workbench_sheet_remote('ir:graduate-works')
+    SP.build('inputs/missing_mods.csv')

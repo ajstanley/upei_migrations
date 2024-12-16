@@ -266,6 +266,39 @@ class ScholarUtilities:
                 stream_to_copy = self.dereference(source)
                 shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
 
+    def stage_remedial_files(self):
+        cursor = self.conn.cursor()
+        statement = "select s.pid, s.content_model from islandscholar s, missing_mods m where s.pid = m.pid"
+        for row in cursor.execute(statement):
+            pid = row['pid']
+            model = row['content_model']
+            copy_streams = {}
+            foxml_file = self.dereference(pid)
+            foxml = f"{self.objectStore}/{foxml_file}"
+            try:
+                fw = FW.FWorker(foxml)
+            except:
+                print(f"No record found for {pid}")
+                continue
+            path = f"{self.staging_dir}/remedial"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            all_files = fw.get_file_data()
+            for entry, file_data in all_files.items():
+                if entry in self.stream_map[model]:
+                    copy_streams[
+                        file_data[
+                            'filename']] = f"{pid.replace(':', '_')}_{entry}{self.mimemap[file_data['mimetype']]}"
+                if 'MODS' in self.stream_map[model] and 'MODS' not in all_files:
+                    mods_content = fw.get_inline_mods()
+                    if mods_content:
+                        modsfile = f"{pid.replace(':', '_')}_MODS.xml"
+                        with open(f'{path}/{modsfile}', 'w') as f:
+                            f.write(mods_content)
+
+            for source, destination in copy_streams.items():
+                stream_to_copy = self.dereference(source)
+                shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
+
     def get_all_signatures(self):
         cursor = self.conn.cursor()
         statement = f"select pid, content_model from islandscholar"
@@ -295,4 +328,4 @@ class ScholarUtilities:
 
 
 SU = ScholarUtilities()
-SU.stage_files('islandscholar', 'ir:signatureCollection')
+SU.stage_remedial_files()
