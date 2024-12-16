@@ -17,6 +17,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/inputs/missing_mods.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/outputs/imagined.csv">
           <value>
             <Attribute>

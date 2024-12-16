@@ -269,7 +269,9 @@ class ScholarUtilities:
     def stage_remedial_files(self):
         cursor = self.conn.cursor()
         statement = "select s.pid, s.content_model from islandscholar s, missing_mods m where s.pid = m.pid"
+        count = 0
         for row in cursor.execute(statement):
+            count = count + 1
             pid = row['pid']
             model = row['content_model']
             copy_streams = {}
