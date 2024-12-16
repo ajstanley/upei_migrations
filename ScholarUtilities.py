@@ -8,8 +8,10 @@ from pathlib import Path
 from urllib.parse import unquote
 import shutil
 import FoxmlWorker as FW
-#from saxonche import *
-#import xmltodict
+
+
+# from saxonche import *
+# import xmltodict
 
 
 class ScholarUtilities:
@@ -29,13 +31,13 @@ class ScholarUtilities:
         self.mods_xsl = "assets/rosies_transform.xsl"
         self.stream_map = {
             'ir:citationCModel': ['OBJ', 'PDF', 'MODS'],
-            'ir:thesisCModel': ['OBJ', 'PDF', 'MODS'],
+            'ir:thesisCModel': ['PDF', 'MODS'],
             'islandora:citationCModel': ['OBJ', 'PDF', 'MODS'],
             'islandora:collectionCModel': ['OBJ', 'PDF', 'MODS'],
-            'islandora:entityCModel': ['OBJ', 'PDF', 'TN','MODS'],
+            'islandora:entityCModel': ['OBJ', 'PDF', 'TN', 'MODS'],
             'islandora:eventCModel': ['OBJ', 'PDF', 'TN', 'MODS'],
-            'islandora:organizationCModel': ['OBJ', 'PDF', 'TN','MODS'],
-            'islandora:personCModel': ['OBJ', 'PDF', 'TN','MODS'],
+            'islandora:organizationCModel': ['OBJ', 'PDF', 'TN', 'MODS'],
+            'islandora:personCModel': ['OBJ', 'PDF', 'TN', 'MODS'],
             'islandora:sp_videoCModel': ['OBJ', 'PDF', 'MODS'],
         }
         self.mimemap = {"image/jpeg": ".jpg",
@@ -48,10 +50,11 @@ class ScholarUtilities:
                         "application/xml": ".xml",
                         "audio/x-wav": ".wav",
                         "audio/mpeg": ".mp3",
+                        "application/vnd.oasis.opendocument.text": ".odt",
+                        "video/mp4": ".mp4",
+                        "application/msword": ".doc"
                         }
         self.staging_dir = '/usr/local/fedora/upei_migrations/staging'
-
-
 
     # Returns disk address from PID.
     def dereference(self, identifier: str) -> str:
@@ -115,7 +118,6 @@ class ScholarUtilities:
                     if relation in self.rels_map:
                         row[self.rels_map[relation]] = value
                 writer.writerow(row)
-
 
     # Processes CSV returned from direct objectStore harvest
     def process_clean_institution(self, institution, csv_file):
@@ -203,7 +205,7 @@ class ScholarUtilities:
                 writer.writerow(row)
 
     # Take copied and pasted text from database query and transform to pid mapping.
-    def text_to_csv(self,infile, outfile):
+    def text_to_csv(self, infile, outfile):
         with open(outfile, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=['nid', 'pid'])
             writer.writeheader()
@@ -212,8 +214,8 @@ class ScholarUtilities:
                     line = file.readline()
                     if not line:
                         break
-                    line = line.replace(' ', '').replace('+', '').replace('-','').strip()
-                    if not line or 'entity_id'  in line:
+                    line = line.replace(' ', '').replace('+', '').replace('-', '').strip()
+                    if not line or 'entity_id' in line:
                         continue
 
                     row = {}
@@ -231,7 +233,7 @@ class ScholarUtilities:
                 cursor.execute(update_statement)
         self.conn.commit()
 
-    def stage_files(self,table, collection):
+    def stage_files(self, table, collection):
         cursor = self.conn.cursor()
         statement = f"select pid, content_model from {table} where collection_pid = '{collection}'"
         for row in cursor.execute(statement):
@@ -260,10 +262,37 @@ class ScholarUtilities:
                         with open(f'{path}/{modsfile}', 'w') as f:
                             f.write(mods_content)
 
-
             for source, destination in copy_streams.items():
                 stream_to_copy = self.dereference(source)
                 shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
 
+    def get_all_signatures(self):
+        cursor = self.conn.cursor()
+        statement = f"select pid, content_model from islandscholar"
+        for row in cursor.execute(statement):
+            pid = row['pid']
+            model = row['content_model']
+            copy_streams = {}
+            foxml_file = self.dereference(pid)
+            foxml = f"{self.objectStore}/{foxml_file}"
+            try:
+                fw = FW.FWorker(foxml)
+            except:
+                print(f"No record found for {pid}")
+                continue
+            path = f"{self.staging_dir}/signatures"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            all_files = fw.get_file_data()
+
+            for entry, file_data in all_files.items():
+                if entry == 'SIGNATURE':
+                    copy_streams[
+                        file_data[
+                            'filename']] = f"{pid.replace(':', '_')}_{entry}{self.mimemap[file_data['mimetype']]}"
+            for source, destination in copy_streams.items():
+                stream_to_copy = self.dereference(source)
+                shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
+
+
 SU = ScholarUtilities()
-SU.stage_files('islandscholar','ir:signatureCollection')
+SU.stage_files('islandscholar', 'ir:signatureCollection')
