@@ -276,6 +276,7 @@ class ScholarUtilities:
             copy_streams = {}
             foxml_file = self.dereference(pid)
             foxml = f"{self.objectStore}/{foxml_file}"
+            mods_content = ''
             try:
                 fw = FW.FWorker(foxml)
             except:
@@ -285,17 +286,14 @@ class ScholarUtilities:
             Path(path).mkdir(parents=True, exist_ok=True)
             all_files = fw.get_file_data()
             if 'MODS' in all_files:
-                mods_content = fw.get_mods()
+                mods_address = self.dereference(fw.get_mods())
+                shutil.copy(f"{self.datastreamStore}/{mods_address}",  f"{pid.replace(':', '_')}_MODS.xml")
             else:
                 mods_content = fw.get_inline_mods()
-            if mods_content:
-                modsfile = f"{pid.replace(':', '_')}_MODS.xml"
-            with open(f'{path}/{modsfile}', 'w') as f:
-                f.write(mods_content)
-
-            for source, destination in copy_streams.items():
-                stream_to_copy = self.dereference(source)
-                shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
+                if mods_content:
+                    modsfile = f"{pid.replace(':', '_')}_MODS.xml"
+                    with open(f'{path}/{modsfile}', 'w') as f:
+                        f.write(mods_content)
 
     def get_all_signatures(self):
         cursor = self.conn.cursor()

@@ -24,6 +24,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/inputs/pid-nid-map.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/outputs/imagined.csv">
           <value>
             <Attribute>

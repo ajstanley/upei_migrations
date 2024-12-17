@@ -103,8 +103,8 @@ class FWorker:
 
     # Get MODS datastream
     def get_mods(self):
-        data = FW.get_file_data()
-        mods_address = data['MODS']['filename']
+        data = self.get_file_data()
+        return data['MODS']['filename']
 
     def transform_mods_to_dc(self):
         mods_xml = self.get_mods()
@@ -145,5 +145,5 @@ class FWorker:
 
 
 if __name__ == '__main__':
-    FW = FWorker('inputs/foxml_with_inline_mods.xml')
-    print(FW.get_inline_mods())
+    FW = FWorker('inputs/foxml_manged_mods.xml')
+    print(FW.get_mods())
