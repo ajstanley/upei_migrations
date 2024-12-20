@@ -145,5 +145,5 @@ class FWorker:
 
 
 if __name__ == '__main__':
-    FW = FWorker('inputs/foxml_manged_mods.xml')
-    print(FW.get_mods())
+    FW = FWorker('inputs/foxml_with_romeo.xml')
+    print(FW.get_file_data())

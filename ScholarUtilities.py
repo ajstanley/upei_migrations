@@ -319,9 +319,12 @@ class ScholarUtilities:
                         file_data[
                             'filename']] = f"{pid.replace(':', '_')}_{entry}{self.mimemap[file_data['mimetype']]}"
             for source, destination in copy_streams.items():
-                stream_to_copy = self.dereference(source)
-                shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
+                try:
+                    stream_to_copy = self.dereference(source)
+                    shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
+                except FileNotFoundError as e:
+                    print(f"{pid} Error: The file was not found: {e}")
 
 
 SU = ScholarUtilities()
-SU.stage_remedial_files()
+SU.add_pid_mapping('inputs/final_pid_nid.csv', 'islandscholar')
