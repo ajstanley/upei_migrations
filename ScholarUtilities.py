@@ -143,7 +143,7 @@ class ScholarUtilities:
                 if not constituent_of:
                     constituent_of = ' '
                 try:
-                    command = f"INSERT OR REPLACE INTO  {institution} VALUES('{row['pid']}', '{row['content_model']}', '{collection}','{page_of}', '{row['sequence']}','{constituent_of}')"
+                    command = f"INSERT OR REPLACE INTO  {institution} VALUES('{row['pid']}', '{row['content_model']}', '{collection}','{page_of}', '{row['sequence']}','{constituent_of}','')"
                     cursor.execute(command)
                 except sqlite3.Error:
                     print(command)
@@ -327,4 +327,4 @@ class ScholarUtilities:
 
 
 SU = ScholarUtilities()
-SU.add_pid_mapping('inputs/final_pid_nid.csv', 'islandscholar')
+SU.process_clean_institution('islandscholar', 'inputs/full_ir.csv' )
