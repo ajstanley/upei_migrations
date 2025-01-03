@@ -134,16 +134,24 @@ class FWorker:
 
     # Older objects may have MODS as inline xml
     def get_inline_mods(self):
-        mods_nodes = self.root.findall(
-            f'.//foxml:datastream[@ID="MODS"]/foxml:datastreamVersion/foxml:xmlContent/mods:mods',
-            namespaces=self.namespaces)
-        if mods_nodes:
-            mods_node = re_node = mods_nodes[-1]
-            return ET.tostring(mods_node, encoding="unicode")
-        else:
-            return None
+        retval = ''
+        try:
+            mods_datastream = self.root.findall(
+                ".//foxml:datastream[@ID='MODS']/foxml:datastreamVersion/foxml:xmlContent/mods:mods",
+                self.namespaces
+            )
+            if not mods_datastream:
+                return retval
+            mods_node = mods_datastream[-1]
+            if mods_node is not None:
+                retval = ET.tostring(mods_node, encoding='unicode')
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+        return retval
 
 
 if __name__ == '__main__':
-    FW = FWorker('inputs/foxml_with_romeo.xml')
-    print(FW.get_file_data())
+    FW = FWorker('inputs/imagined_collection.xml')
+    print(FW.get_rels_ext_values())
