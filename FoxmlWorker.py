@@ -129,7 +129,11 @@ class FWorker:
                     re_values[tag] = text
             resource = child.attrib.get('{http://www.w3.org/1999/02/22-rdf-syntax-ns#}resource')
             if resource:
-                re_values[tag] = resource.replace('info:fedora/', '')
+                current = re_values.get(tag)
+                new = resource.replace('info:fedora/', '')
+                if current is not None:
+                    new = f"{current}|{new}"
+                re_values[tag] = new
         return re_values
 
     # Older objects may have MODS as inline xml

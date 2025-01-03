@@ -329,5 +329,5 @@ class ScholarUtilities:
 
 
 SU = ScholarUtilities()
-print (SU.dereference('imagined:9'))
+SU.add_mods_to_database('imagined')
 
