@@ -30,6 +30,7 @@ class ScholarProcessor:
                         "image/jp2": ".jp2",
                         "image/png": ".png",
                         "image/tiff": ".tif",
+                        "image/tif": ".tif",
                         "text/xml": ".xml",
                         "text/plain": ".txt",
                         "application/pdf": ".pdf",
@@ -121,21 +122,24 @@ class ScholarProcessor:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             writer.writeheader()
             for row in cursor.execute(statement):
-                if row['content_model'] in self.content_model_primary_map:
-                    datastream = self.content_model_primary_map[row['content_model']]
-                if not datastream:
-                    datastream = 'OBJ'
                 foxml_file = self.su.dereference(row['pid'])
                 foxml = f"{self.objectStore}/{foxml_file}"
                 fw = FW.FWorker(foxml)
                 if fw.properties['state'] != 'Active':
                     continue
                 all_datastreams = fw.get_file_data()
-                original_file = datastream
+                original_file = False
+                if 'PDF' in all_datastreams:
+                    original_file = 'PDF'
+                if 'OBJ' in all_datastreams:
+                    original_file = 'OBJ'
                 if original_file in all_datastreams:
                     datastream_data = all_datastreams[original_file]
                     source = f"{self.datastreamStore}/{self.su.dereference(datastream_data['filename'])}"
-                    destination = f"{row['nid']}_{datastream}{self.mimemap[datastream_data['mimetype']]}"
+                    mime_ext = '.bin'
+                    if datastream_data['mimetype'] in self.mimemap:
+                        mime_ext = self.mimemap[datastream_data['mimetype']]
+                    destination = f"{row['nid']}_{original_file}{mime_ext}"
                     shutil.copy(source, f"{filepath}/{destination}")
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
@@ -156,4 +160,4 @@ class ScholarProcessor:
 
 if __name__ == '__main__':
     SP = ScholarProcessor()
-    SP.build('inputs/missing_mods.csv')
+    SP.build_workbench_sheet_remote()
