@@ -24,6 +24,7 @@ class ScholarProcessor:
         self.content_model_primary_map = {
             'ir:citationCModel': '',
             'ir:thesisCModel': 'PDF',
+            'islandora:sp_pdf': 'PDF'
         }
         self.mimemap = {"image/jpeg": ".jpg",
                         "image/jp2": ".jp2",
@@ -120,16 +121,17 @@ class ScholarProcessor:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             writer.writeheader()
             for row in cursor.execute(statement):
-                datastream = self.content_model_primary_map[row['content_model']]
+                if row['content_model'] in self.content_model_primary_map:
+                    datastream = self.content_model_primary_map[row['content_model']]
                 if not datastream:
-                    continue
+                    datastream = 'OBJ'
                 foxml_file = self.su.dereference(row['pid'])
                 foxml = f"{self.objectStore}/{foxml_file}"
                 fw = FW.FWorker(foxml)
                 if fw.properties['state'] != 'Active':
                     continue
                 all_datastreams = fw.get_file_data()
-                original_file = self.content_model_primary_map[row['content_model']]
+                original_file = datastream
                 if original_file in all_datastreams:
                     datastream_data = all_datastreams[original_file]
                     source = f"{self.datastreamStore}/{self.su.dereference(datastream_data['filename'])}"
