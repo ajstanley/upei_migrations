@@ -102,14 +102,13 @@ class ScholarProcessor:
                 writer.writerow({'node_id': row['nid'], 'file': filename})
 
     # Builds workbench sheet to ingest primary assets harvesting from the Fedora data dir.
-    def build_workbench_sheet_remote(self, collection_pid):
-        output_file_name = f"{collection_pid.replace(':', '_')}_workbench.csv"
+    def build_workbench_sheet_remote(self):
+        output_file_name = f"imagined_add_media_workbench.csv"
         cursor = self.conn.cursor()
         statement = f"""
                 SELECT nid, pid, content_model
-                FROM islandscholar
-                WHERE collection_pid = '{collection_pid}'
-                and nid IS NOT NULL
+                FROM imagined
+                WHERE nid IS NOT NULL
         """
         headers = ['node_id', 'file']
         filepath = 'workbench_files'

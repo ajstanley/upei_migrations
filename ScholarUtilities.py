@@ -9,9 +9,9 @@ from urllib.parse import unquote
 import shutil
 import FoxmlWorker as FW
 
-
-# from saxonche import *
-# import xmltodict
+from saxonche import *
+import xmltodict
+import pprint
 
 
 class ScholarUtilities:
@@ -143,7 +143,7 @@ class ScholarUtilities:
                 if not constituent_of:
                     constituent_of = ' '
                 try:
-                    command = f"INSERT OR REPLACE INTO  {institution} VALUES('{row['pid']}', '{row['content_model']}', '{collection}','{page_of}', '{row['sequence']}','{constituent_of}','')"
+                    command = f"INSERT OR REPLACE INTO  {institution} VALUES('{row['pid']}', '{row['content_model']}', '{collection}','{page_of}', '{row['sequence']}','{constituent_of}','','')"
                     cursor.execute(command)
                 except sqlite3.Error:
                     print(command)
@@ -289,13 +289,22 @@ class ScholarUtilities:
             all_files = fw.get_file_data()
             if 'MODS' in all_files:
                 mods_address = self.dereference(fw.get_mods())
-                shutil.copy(f"{self.datastreamStore}/{mods_address}",  f"{pid.replace(':', '_')}_MODS.xml")
+                shutil.copy(f"{self.datastreamStore}/{mods_address}", f"{pid.replace(':', '_')}_MODS.xml")
             else:
                 mods_content = fw.get_inline_mods()
                 if mods_content:
                     modsfile = f"{pid.replace(':', '_')}_MODS.xml"
                     with open(f'{path}/{modsfile}', 'w') as f:
                         f.write(mods_content)
+
+    def update_rels(self, input):
+        cursor = self.conn.cursor()
+        with open(input, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                statement = f"update imagined  set content_model = '{row['content_model']}' where PID = '{row['pid']}'"
+                cursor.execute(statement)
+        self.conn.commit()
 
     def get_all_signatures(self):
         cursor = self.conn.cursor()
@@ -329,5 +338,6 @@ class ScholarUtilities:
 
 
 SU = ScholarUtilities()
-SU.add_mods_to_database('imagined')
-
+# pp = pprint.PrettyPrinter(depth=4)
+# pp.pprint(SU.extract_from_mods('imagined:9'))
+SU.add_pid_mapping('inputs/imagined-nid-pid.csv', 'imagined')
