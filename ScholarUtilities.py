@@ -358,6 +358,7 @@ class ScholarUtilities:
             except:
                 print(f"No record found for {pid}")
                 continue
+            nid = self.get_nid_from_pid('imagined', pid)
             path = f"{self.staging_dir}/imagined_fixed"
             Path(path).mkdir(parents=True, exist_ok=True)
             all_files = fw.get_file_data()
@@ -366,7 +367,7 @@ class ScholarUtilities:
                     if entry == 'LOSSLESS_JP2':
                         copy_streams[
                             file_data[
-                                'filename']] = f"{pid.replace(':', '_')}_{entry}{self.mimemap[file_data['mimetype']]}"
+                                'filename']] = f"{nid}_OBJ{self.mimemap[file_data['mimetype']]}"
                 for source, destination in copy_streams.items():
                     try:
                         stream_to_copy = self.dereference(source)
@@ -376,5 +377,6 @@ class ScholarUtilities:
 
 
 SU = ScholarUtilities()
+SU.get_all_new_objs()
 # pp = pprint.PrettyPrinter(depth=4)
 # pp.pprint(SU.extract_from_mods('imagined:9'))

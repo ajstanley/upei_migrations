@@ -196,4 +196,4 @@ class ScholarProcessor:
 
 if __name__ == '__main__':
     SP = ScholarProcessor()
-    SP.make_media_delete_sheet('inputs/file_list.txt')
+    SP.make_media_delete_sheet('inputs/imagined_ppm_files.txt')
