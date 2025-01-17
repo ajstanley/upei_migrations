@@ -144,6 +144,31 @@ class ScholarProcessor:
                     writer.writerow({'node_id': row['nid'], 'file': destination})
         self.conn.close()
 
+    def build_workbench_mods_sheet_remote(self):
+        output_file_name = f"imagined_add_mods_workbench.csv"
+        cursor = self.conn.cursor()
+        statement = f"""
+                   SELECT nid, mods
+                   FROM imagined
+                   WHERE nid IS NOT NULL
+           """
+        headers = ['node_id', 'file']
+        filepath = 'workbench_files'
+        sheetpath = 'workbench_sheets'
+        # Build directory
+        Path(filepath).mkdir(parents=True, exist_ok=True)
+        Path(sheetpath).mkdir(parents=True, exist_ok=True)
+        with open(f"{sheetpath}/{output_file_name}", 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=headers)
+            writer.writeheader()
+            for row in cursor.execute(statement):
+                if row['mods']:
+                    filename = f"{row['nid'].replace(':', '_')}_mods.xml"
+                    with open(f"{filepath}/{filename}", "w") as text_file:
+                        text_file.write(row['mods'])
+                    writer.writerow({'node_id': row['nid'], 'file': filename})
+        self.conn.close()
+
     def build(self, csv_file):
         cursor = self.conn.cursor()
         with open(csv_file, newline='') as csvfile:
@@ -157,7 +182,18 @@ class ScholarProcessor:
                     print(f"SQLite error: {e}, row: {row}")
         self.conn.commit()
 
+    def make_media_delete_sheet(self, filename):
+        with open(filename, 'r') as file:
+            # Iterate over each line in the file
+            with open('outputs/delete_node_media.csv', 'w') as outfile:
+                outfile.write('node_id\n')
+                for line in file:
+                    identifier = line.split('_')[1]
+                    pid = f'imagined:{identifier}'
+                    nid = self.su.get_nid_from_pid('imagined', pid)
+                    outfile.write(nid + '\n')
+
 
 if __name__ == '__main__':
     SP = ScholarProcessor()
-    SP.build_workbench_sheet_remote()
+    SP.make_media_delete_sheet('inputs/file_list.txt')

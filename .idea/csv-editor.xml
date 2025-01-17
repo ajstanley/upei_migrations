@@ -24,6 +24,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/inputs/imagined_rels.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/inputs/ir.csv">
           <value>
             <Attribute>
@@ -52,6 +59,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/outputs/delete_node_media.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/outputs/imagined.csv">
           <value>
             <Attribute>
@@ -67,6 +81,13 @@
           </value>
         </entry>
         <entry key="/outputs/transformed.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/workbench_sheets/imagined_add_mods_workbench.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

@@ -335,6 +335,15 @@ class ScholarUtilities:
                     shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
                 except FileNotFoundError as e:
                     print(f"{pid} Error: The file was not found: {e}")
+    def get_nid_from_pid(self, table, pid):
+        cursor = self.conn.cursor()
+        statement = f"select nid from {table}  where pid = '{pid}'"
+        cursor.execute(statement)
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
 
     def get_all_new_objs(self):
         cursor = self.conn.cursor()
@@ -352,7 +361,7 @@ class ScholarUtilities:
             path = f"{self.staging_dir}/imagined_fixed"
             Path(path).mkdir(parents=True, exist_ok=True)
             all_files = fw.get_file_data()
-            if {'OBJ', 'LOSSLESS_JP2'}.issubset(all_files):
+            if {'OBJ', 'LOSSLESS_JP2'}.issubset(all_files) and all_files['OBJ']['mimetype'] == 'image/jp2':
                 for entry, file_data in all_files.items():
                     if entry == 'LOSSLESS_JP2':
                         copy_streams[
@@ -369,4 +378,3 @@ class ScholarUtilities:
 SU = ScholarUtilities()
 # pp = pprint.PrettyPrinter(depth=4)
 # pp.pprint(SU.extract_from_mods('imagined:9'))
-SU.get_all_new_objs()
