@@ -168,7 +168,7 @@ class ScholarUtilities:
                 mods_xml = fw.get_inline_mods()
             if mods_xml:
                 mods_xml = mods_xml.replace("'", "''")
-                command = f"""UPDATE {namespace} set mods = '{mods_xml}' where pid = '{pid}"""
+                command = f"""UPDATE {namespace} set mods = '{mods_xml}' where pid = '{pid}'"""
                 cursor.execute(command)
         self.conn.commit()
 
@@ -344,6 +344,36 @@ class ScholarUtilities:
             return result[0]
         else:
             return None
+    #get all PPMs
+    def harvest_ppms(self):
+        cursor = self.conn.cursor()
+        statement = f"select pid from imagined"
+        for row in cursor.execute(statement):
+            pid = row['pid']
+            copy_streams = {}
+            foxml_file = self.dereference(pid)
+            foxml = f"{self.objectStore}/{foxml_file}"
+            try:
+                fw = FW.FWorker(foxml)
+            except:
+                print(f"No record found for {pid}")
+                continue
+            nid = self.get_nid_from_pid('imagined', pid)
+            path = f"{self.staging_dir}/imagined_fixed"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            all_files = fw.get_file_data()
+            if {'OBJ', 'LOSSLESS_JP2'}.issubset(all_files) and all_files['OBJ']['mimetype'] == 'image/jp2':
+                for entry, file_data in all_files.items():
+                    if entry == 'OBJ':
+                        copy_streams[
+                            file_data[
+                                'filename']] = f"{pid}_OBJ.ppm"
+                for source, destination in copy_streams.items():
+                    try:
+                        stream_to_copy = self.dereference(source)
+                        shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
+                    except FileNotFoundError as e:
+                        print(f"{pid} Error: The file was not found: {e}")
 
     def get_all_new_objs(self):
         cursor = self.conn.cursor()
@@ -377,6 +407,4 @@ class ScholarUtilities:
 
 
 SU = ScholarUtilities()
-SU.get_all_new_objs()
-# pp = pprint.PrettyPrinter(depth=4)
-# pp.pprint(SU.extract_from_mods('imagined:9'))
+SU.add_mods_to_database('ivoices')

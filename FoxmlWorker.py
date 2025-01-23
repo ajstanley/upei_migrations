@@ -160,5 +160,4 @@ if __name__ == '__main__':
     FW = FWorker('inputs/imagined_collection.xml')
 
     all_files = FW.get_file_data()
-    if {'OBJ', 'LOSSLESS_JP2'}.issubset(all_files) and all_files['OBJ']['mimetype'] == 'image/jp2':
-        print("True dat.")
+
