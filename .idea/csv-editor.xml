@@ -80,6 +80,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/outputs/nodes_to_archive.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/outputs/ppm_add_media.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/outputs/transformed.csv">
           <value>
             <Attribute>
