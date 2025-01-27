@@ -405,6 +405,21 @@ class ScholarUtilities:
                     except FileNotFoundError as e:
                         print(f"{pid} Error: The file was not found: {e}")
 
+    def get_all_dc(self, table):
+        cursor = self.conn.cursor()
+        statement = f"select pid from {table}"
+        with open(f"{self.staging_dir}/{table}_dc.csv", 'w') as outfile:
+            for row in cursor.execute(statement):
+                pid = row['pid']
+                foxml_file = self.dereference(pid)
+                foxml = f"{self.objectStore}/{foxml_file}"
+                try:
+                    fw = FW.FWorker(foxml)
+                except:
+                    print(f"No record found for {pid}")
+                    continue
+                dc = fw.get_dc()
+                outfile.write(f"{pid},{dc}")
 
 SU = ScholarUtilities()
-SU.add_mods_to_database('ivoices')
+SU.get_all_dc('ivoices')
