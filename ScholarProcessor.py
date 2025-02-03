@@ -193,6 +193,20 @@ class ScholarProcessor:
                     nid = self.su.get_nid_from_pid('imagined', pid)
                     outfile.write(nid + '\n')
 
+    def prepare_page_worksheet(self, output_file):
+        details = self.mu.get_page_details('msvu')
+        with open(output_file, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames)
+            writer.writeheader()
+            for detail in details:
+                mods = self.mu.extract_from_mods(detail['field_pid'])
+                row = mods | detail
+                node_id = self.mu.get_nid_from_pid('msvu', row['field_member_of'])
+                row['id'] = row['field_pid']
+                if node_id:
+                    row['field_member_of'] = node_id
+                    writer.writerow(row)
+
 
 if __name__ == '__main__':
     SP = ScholarProcessor()

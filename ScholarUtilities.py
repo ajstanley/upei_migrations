@@ -7,6 +7,11 @@ import urllib
 from pathlib import Path
 from urllib.parse import unquote
 import shutil
+import xml.etree.ElementTree as ET
+import re
+import ModsTransformer
+from openpyxl.styles.builtins import currency
+
 import FoxmlWorker as FW
 
 from saxonche import *
@@ -55,6 +60,7 @@ class ScholarUtilities:
                         "application/msword": ".doc"
                         }
         self.staging_dir = '/usr/local/fedora/upei_migrations/staging'
+        self.mt = ModsTransformer.ModsTransformer()
 
     # Returns disk address from PID.
     def dereference(self, identifier: str) -> str:
@@ -268,44 +274,6 @@ class ScholarUtilities:
                 stream_to_copy = self.dereference(source)
                 shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
 
-    def stage_remedial_files(self):
-        cursor = self.conn.cursor()
-        statement = f"select pid, nid from missing_mods"
-        count = 0
-        for row in cursor.execute(statement):
-            count = count + 1
-            pid = row['pid']
-            copy_streams = {}
-            foxml_file = self.dereference(pid)
-            foxml = f"{self.objectStore}/{foxml_file}"
-            mods_content = ''
-            try:
-                fw = FW.FWorker(foxml)
-            except:
-                print(f"No record found for {pid}")
-                continue
-            path = f"{self.staging_dir}/remedial"
-            Path(path).mkdir(parents=True, exist_ok=True)
-            all_files = fw.get_file_data()
-            if 'MODS' in all_files:
-                mods_address = self.dereference(fw.get_mods())
-                shutil.copy(f"{self.datastreamStore}/{mods_address}", f"{pid.replace(':', '_')}_MODS.xml")
-            else:
-                mods_content = fw.get_inline_mods()
-                if mods_content:
-                    modsfile = f"{pid.replace(':', '_')}_MODS.xml"
-                    with open(f'{path}/{modsfile}', 'w') as f:
-                        f.write(mods_content)
-
-    def update_rels(self, input):
-        cursor = self.conn.cursor()
-        with open(input, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                statement = f"update imagined  set content_model = '{row['content_model']}' where PID = '{row['pid']}'"
-                cursor.execute(statement)
-        self.conn.commit()
-
     def get_all_signatures(self):
         cursor = self.conn.cursor()
         statement = f"select pid, content_model from islandscholar"
@@ -408,7 +376,11 @@ class ScholarUtilities:
     def get_all_dc(self, table):
         cursor = self.conn.cursor()
         statement = f"select pid from {table}"
-        with open(f"{self.staging_dir}/{table}_dc.csv", 'w') as outfile:
+        headers = 'pid', 'dublin_core'
+        csv_file_path = f"{self.staging_dir}/{table}_dc.csv"
+        with open(csv_file_path, mode="w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=headers)  # Pass the file object here
+            writer.writeheader()
             for row in cursor.execute(statement):
                 pid = row['pid']
                 foxml_file = self.dereference(pid)
@@ -419,7 +391,60 @@ class ScholarUtilities:
                     print(f"No record found for {pid}")
                     continue
                 dc = fw.get_dc()
-                outfile.write(f"{pid},{dc}")
+                writer.writerow({'pid': pid, 'dublin_core': dc})
+    def add_dc(self):
+        cursor = self.conn.cursor()
+        with open('inputs/ivoices_dc.csv', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                query = "UPDATE ivoices SET dublin_core = ? WHERE pid = ?"
+                params = (row['dublin_core'], row['pid'])
+                cursor.execute(query, params)
+            self.conn.commit()
+    def get_dc_values(self, pid):
+        cursor = self.conn.cursor()
+        result = cursor.execute(f"select dublin_core from ivoices where pid = '{pid}'")
+        dc = result.fetchone()['dublin_core']
+        root = ET.fromstring(dc)
+        namespaces = {
+            'dc': 'http://purl.org/dc/elements/1.1/'
+        }
+        tags_and_values = [(elem.tag, elem.text) for elem in root.findall('.//dc:*', namespaces)]
+        dc_vals = {}
+        for tag, value in tags_and_values:
+            tag = re.sub(r"\{.*?\}", "", tag)
+            dc_vals[tag] = value
+
+        return dc_vals
+
+    def extract_from_mods(self, pid):
+        cursor = self.conn.cursor()
+        command = f"SELECT MODS from ivoices where PID = '{pid}'"
+        result = cursor.execute(command).fetchone()
+        mods = result['MODS']
+        if mods is not None and len(mods) < 10:
+            return {}
+        return self.mt.extract_from_mods(mods)
+
+    def get_restricted_pids(self, namespace):
+        pids = self.get_pids_from_objectstore(namespace)
+        with open(f"{self.staging_dir}/restrictiopns.txt", "w") as f:
+            f.write("pid, restricted_to")
+            for pid in pids:
+                foxml_file = self.dereference(pid)
+                foxml = f"{self.objectStore}/{foxml_file}"
+                try:
+                    fw = FW.FWorker(foxml)
+                except:
+                    print(f"No record found for {pid}")
+                    continue
+                rels_int = fw.get_rels_int_values()
+                if 'isViewableByRole' in rels_int:
+                    users = '|'.join(rels_int['isViewableByRole'])
+                    f.write(pid, )
+
+
+
 
 SU = ScholarUtilities()
-SU.get_all_dc('ivoices')
+SU.get_restricted_pids('ivoices')

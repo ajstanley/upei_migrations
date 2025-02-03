@@ -136,6 +136,30 @@ class FWorker:
                 re_values[tag] = new
         return re_values
 
+    def get_rels_int_values(self):
+        re_values = {}
+        re_nodes = self.root.findall(
+            f'.//foxml:datastream[@ID="RELS-INT"]/foxml:datastreamVersion/foxml:xmlContent/rdf:RDF',
+            namespaces=self.namespaces)
+        re_node = re_nodes[-1]
+        for child in re_node.iter():
+            tag = child.xpath('local-name()')
+            if tag not in re_values:
+                re_values[tag] = []
+            if child.text is not None:
+                cleaned = child.text.replace('info:fedora/', '').replace('\n', '')
+                text = ' '.join(cleaned.split())
+                if text:
+                    re_values[tag].append(text)
+            resource = child.attrib.get('{http://www.w3.org/1999/02/22-rdf-syntax-ns#}resource')
+            if resource:
+                current = re_values.get(tag)
+                new = resource.replace('info:fedora/', '')
+                if current is not None:
+                    new = f"{current}|{new}"
+                re_values[tag].append(new)
+        return re_values
+
     # Older objects may have MODS as inline xml
     def get_inline_mods(self):
         retval = ''
@@ -159,5 +183,5 @@ class FWorker:
 if __name__ == '__main__':
     FW = FWorker('inputs/imagined_collection.xml')
 
-    all_files = FW.get_file_data()
+    print(FW.get_rels_int_values())
 
