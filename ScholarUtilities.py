@@ -433,7 +433,7 @@ class ScholarUtilities:
     def get_restricted_pids(self, namespace):
         pids = self.get_pids_from_objectstore(namespace)
         with open(f"{self.staging_dir}/restrictions.txt", "w") as f:
-            f.write("pid, allowed_roles, allowed_users")
+            f.write("pid, Role can view, User Can View, Role can manage, User can manage")
             for pid in pids:
                 foxml_file = self.dereference(pid)
                 foxml = f"{self.objectStore}/{foxml_file}"
@@ -444,18 +444,26 @@ class ScholarUtilities:
                     continue
                 rels_ext = fw.get_rels_ext_values()
                 rels_int = fw.get_rels_int_values()
-                combined = rels_ext | rels_int
+                combined = {**rels_ext, **rels_int}
                 users = ''
                 roles = ''
+                manage_users = ''
+                manage_roles = ''
                 add = False
                 if 'isViewableByRole' in combined:
                     roles = '|'.join(combined['isViewableByRole'])
                     add = True
                 if 'isViewableByUser' in combined:
-                    users = '|'.join(combined['isViewableByRole'])
+                    users = '|'.join(combined['isViewableByUser'])
+                    add = True
+                if 'isManageableByUser' in combined:
+                    manage_users = '|'.join(combined['isManageableByUser'])
+                    add = True
+                if 'isManageableByRole' in combined:
+                    manage_roles = '|'.join(combined['isManageableByRole'])
                     add = True
                 if add:
-                    f.write(f"{pid}, {roles}, {users}")
+                    f.write(f"{pid}, {roles}, {users}, {manage_users}, {manage_roles}\n")
     def map_datastreams(self):
         cursor = self.conn.cursor()
         statement = f"select pid from ivoices"
