@@ -303,6 +303,7 @@ class ScholarUtilities:
                     shutil.copy(f"{self.datastreamStore}/{stream_to_copy}", f"{path}/{destination}")
                 except FileNotFoundError as e:
                     print(f"{pid} Error: The file was not found: {e}")
+
     def get_nid_from_pid(self, table, pid):
         cursor = self.conn.cursor()
         statement = f"select nid from {table}  where pid = '{pid}'"
@@ -312,7 +313,8 @@ class ScholarUtilities:
             return result[0]
         else:
             return None
-    #get all PPMs
+
+    # get all PPMs
     def harvest_ppms(self):
         cursor = self.conn.cursor()
         statement = f"select pid from imagined"
@@ -392,6 +394,7 @@ class ScholarUtilities:
                     continue
                 dc = fw.get_dc()
                 writer.writerow({'pid': pid, 'dublin_core': dc})
+
     def add_dc(self):
         cursor = self.conn.cursor()
         with open('inputs/ivoices_dc.csv', newline='') as csvfile:
@@ -401,6 +404,7 @@ class ScholarUtilities:
                 params = (row['dublin_core'], row['pid'])
                 cursor.execute(query, params)
             self.conn.commit()
+
     def get_dc_values(self, pid):
         cursor = self.conn.cursor()
         result = cursor.execute(f"select dublin_core from ivoices where pid = '{pid}'")
@@ -428,8 +432,8 @@ class ScholarUtilities:
 
     def get_restricted_pids(self, namespace):
         pids = self.get_pids_from_objectstore(namespace)
-        with open(f"{self.staging_dir}/restrictiopns.txt", "w") as f:
-            f.write("pid, restricted_to")
+        with open(f"{self.staging_dir}/restrictions.txt", "w") as f:
+            f.write("pid, allowed_roles, allowed_users")
             for pid in pids:
                 foxml_file = self.dereference(pid)
                 foxml = f"{self.objectStore}/{foxml_file}"
@@ -439,11 +443,19 @@ class ScholarUtilities:
                     print(f"No record found for {pid}")
                     continue
                 rels_int = fw.get_rels_int_values()
+                if not rels_int:
+                    continue
+                users = ''
+                roles = ''
+                add = False
                 if 'isViewableByRole' in rels_int:
+                    roles = '|'.join(rels_int['isViewableByRole'])
+                    add = True
+                if 'isViewableByUser' in rels_int:
                     users = '|'.join(rels_int['isViewableByRole'])
-                    f.write(pid, )
-
-
+                    add = True
+                if add:
+                    f.write(f"{pid}, {roles}, {users}")
 
 
 SU = ScholarUtilities()
