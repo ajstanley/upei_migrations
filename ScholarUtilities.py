@@ -442,20 +442,35 @@ class ScholarUtilities:
                 except:
                     print(f"No record found for {pid}")
                     continue
+                rels_ext = fw.get_rels_ext_values()
                 rels_int = fw.get_rels_int_values()
-                if not rels_int:
-                    continue
+                combined = rels_ext | rels_int
                 users = ''
                 roles = ''
                 add = False
-                if 'isViewableByRole' in rels_int:
-                    roles = '|'.join(rels_int['isViewableByRole'])
+                if 'isViewableByRole' in combined:
+                    roles = '|'.join(combined['isViewableByRole'])
                     add = True
-                if 'isViewableByUser' in rels_int:
-                    users = '|'.join(rels_int['isViewableByRole'])
+                if 'isViewableByUser' in combined:
+                    users = '|'.join(combined['isViewableByRole'])
                     add = True
                 if add:
                     f.write(f"{pid}, {roles}, {users}")
+    def map_datastreams(self):
+        cursor = self.conn.cursor()
+        statement = f"select pid from ivoices"
+        for row in cursor.execute(statement):
+            pid = row['pid']
+            foxml_file = self.dereference(pid)
+            foxml = f"{self.objectStore}/{foxml_file}"
+            try:
+                fw = FW.FWorker(foxml)
+            except:
+                print(f"No record found for {pid}")
+                continue
+            file_data = fw.get_file_data()
+            if 'POLICY' in file_data:
+                print(f"{pid}")
 
 
 SU = ScholarUtilities()
